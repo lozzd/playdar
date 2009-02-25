@@ -11,11 +11,25 @@
 RS_lan_udp::RS_lan_udp(MyApplication * a)
     :ResolverService(a)
 {
+    string hello = "OHAI ";
+    hello += app()->name();
+    boost::thread thr( &UDPSender::send,
+                    app()->multicast_ip(), 
+                    app()->multicast_port(), 
+                    hello );
     boost::thread m_responder_thread(&RS_lan_udp::init, this);
 }
 
 RS_lan_udp::~RS_lan_udp()
 {
+    // currently this won't fire if you just control+C
+    // need to trap exit signals etc
+    cout << "lan_udp resolver shutting down" << endl;
+    string hello = "KTHXBYE ";
+    hello += app()->name();
+    UDPSender::send(app()->multicast_ip(), 
+                    app()->multicast_port(), 
+                    hello );
     delete(socket_);
 }
 
@@ -44,7 +58,9 @@ RS_lan_udp::init()
     boost::asio::io_service io_service;
     start_listening(io_service, boost::asio::ip::address::from_string("0.0.0.0"), 
                     app()->multicast_ip(), app()->multicast_port());
+
     io_service.run();
+
 }        
             
 void 
@@ -104,6 +120,13 @@ RS_lan_udp::handle_receive_from(const boost::system::error_code& error,
                     << sender_address.to_string() << ":" << sender_port << "):" << endl; 
                     //<< endl << msg << endl << endl;
     
+            // special (hacked in) join leave msg, for fun debugging on lan
+            if(msg.substr(0,5)=="OHAI " || msg.substr(0,8)=="KTHXBYE ")
+            {
+                cout << "INFO Online/offline msg: " << msg << endl;
+                break;
+            }
+     
             using namespace json_spirit;
             // try and parse it as json:
             Value mv;
@@ -196,6 +219,10 @@ RS_lan_udp::handle_receive_from(const boost::system::error_code& error,
                 vector< boost::shared_ptr<PlayableItem> > v;
                 v.push_back(pip);
                 report_results(qid, v);
+                cout    << "INFO Result from '" << pip->source()
+                        <<"' for '"<< pip->artist() <<"' - '"
+                        << pip->track() << "' [score: "<< pip->score() <<"]" 
+                        << endl;
             }
             
         }while(false);

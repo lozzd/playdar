@@ -21,7 +21,7 @@ Resolver::Resolver(MyApplication * app)
     cout << "Resolver started." << endl;
     
     m_rs_local  = new RS_local_library(app);
-    
+
     //TODO dynamic loading at runtime using PDL or Boost.extension
     if(app->option<string>("resolver.remote_http.enabled")=="yes")
     {
@@ -41,6 +41,7 @@ Resolver::Resolver(MyApplication * app)
     {
         m_rs_lan    = new RS_lan_udp(app);
     }
+
     /*if(app->option<string>("resolver.gateway_http.enabled")=="yes")
     {
         m_http_gateway_script = new RS_http_gateway_script(app);
